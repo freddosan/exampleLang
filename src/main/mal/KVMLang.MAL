@@ -16,6 +16,7 @@ category System {
         | authenticate
            developer info: "Does the attacker have the credentials to an account?."
             -> authenticatedAccess
+
         & authenticatedAccess
             developer info: "One way to get access to the machine is trough legitimate authentication."
             -> fullAccess
@@ -23,6 +24,17 @@ category System {
         | compromisedAccess
             developer info: "this is for when the KeyStone Account is compromised."
             
+
+        | fullAccess
+            ->  _machineAccess
+
+        | _machineAccess
+            ->  denialOfService
+
+        | denialOfService
+            -> executees.denialOfService
+
+
     }
 
 
@@ -33,7 +45,7 @@ category System {
     {
         
         | access
-            -> something
+            
 
 
     }
@@ -48,9 +60,11 @@ category System {
     {
             
             | compromisedAccess
-            ->  instance.stop,
-                instance.deploy,
-                instance.delete
+            ->  ControlledVM.stop,
+                ControlledVM.deploy,
+                ControlledVM.delete,
+                ControlledVM.clone,
+                ControlledVM.snapshot
                         
 
 
@@ -59,11 +73,12 @@ category System {
 
 
     asset QemuKVM extends Software
-        developer info: "New asset for KVM-QEMU. talks to the  Allocates ram and cpu. "
-        developer info: "Qemu emulates Harddrive (storage, devices such as USB)."
+        developer info: "New asset for KVM-QEMU."
+        developer info: "Qemu emulates vCpu, SMP, Soft MMU, I &T. Mech, I/O Network, Paravirtualized I/O, VM Exits, Hypercalls, "
         {
             
             | compromisedAccess
+            developer info: "add stuff to break out of VirBox."
                 -> data.read
 
 
@@ -73,7 +88,10 @@ category System {
 
     asset Instance extends QemuKVM
            developer info: "Adapted from AWSLang, with minor changes. One instance is the  running on the machine" {
-        
+            
+            | compromisedAccess
+                -> stop
+            | stop
 
     }
 
@@ -85,7 +103,7 @@ associations {
     Machine [executor]  1..*  <--  Execution    -->    *  [executees]  Software
     developer info: "SW runs on the machine"
 
-    QemuKVM [Virtualization] 1  <-- Hardware --> * [VirtualizedHardware]  Instance
+    QemuKVM [Virtualization] 1..*  <-- Hardware --> * [VirtualizedHardware]  Instance
     developer info: "Qemu-KVM handles I/O emulation CPU emulation and virtual hardware for each instance"
 
     NovaCompute [ControlVM]  1..*  <--  Orchestrates    -->    *  [ControlledVM]  Instance
