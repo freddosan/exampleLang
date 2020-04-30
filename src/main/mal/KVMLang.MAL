@@ -1,0 +1,85 @@
+category System{
+
+    abstractAsset Machine{
+
+        developer info: "Adapted from AWSLang"
+
+        | connect 
+           developer info: "Attempt connection to the eg via shell, but the attacker has yet to authenticate"
+            -> authenticatedAccess
+        
+        | authenticate
+           developer info: "Does the attacker have the credentials to an account?"
+            -> authenticatedAccess
+        & authenticatedAccess
+            developer info: "One way to get access to the machine is trough legitimate authentication"
+            -> fullAccess
+    
+        | compromisedAccess
+            developer info: "this is for when the KeyStone Account is compromised"
+            
+    }
+
+
+
+
+    abstractAsset Software extends Machine
+        developer info: "Specifies the operating system, application, Virtual machine manager etc, running on the instances or on the machine. Adapted from Corelang"{
+        
+        | access
+
+
+    }
+
+    asset OS extends Software{
+
+    }
+
+    asset NovaCompute extends Software
+    developer info: "This is the worker deamon that creates or terminates VM's trough hypervisor API's" {
+            
+            user info: "This is when a user has access to the Nova compute interface which controls the VM's"
+            | compromisedAccess
+            ->  instance.stop,
+                instance.deploy,
+                instance.delete
+                        
+
+
+
+    }
+
+
+    asset Qemu-KVM extends Software
+        developer info: "New asset for KVM-QEMU. talks to the  Allocates ram and cpu. "
+        developer info: "Qemu emulates Harddrive (storage, devices such as USB)"{
+            
+            | compromisedAccess
+                -> data.read,
+
+
+            
+
+    }
+
+    asset Instance extends Qemu-KVM
+           developer info: "Adapted from AWSLang, with minor changes. One instance is the  running on the machine" {
+        
+
+    }
+
+
+
+}
+
+associations {
+    Machine [executor]  1..*  <--  Execution    -->    *  [executees]  Software
+    developer info: "SW runs on the machine"
+
+    Qemu-KVM [Virtualization] 1  <-- Hardware --> * [VirtualizedHardware]  Instance
+    developer info: "Qemu-KVM handles I/O emulation CPU emulation and virtual hardware for each instance"
+
+    NovaCompute [ControlVM]  1..*  <--  Orchestrates    -->    *  [ControlledVM]  Instance
+    developer info: "Nova compute orchestrates the KVM-QEMU instances. Start/Stop/Delete"
+
+}
