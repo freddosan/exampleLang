@@ -4,7 +4,7 @@
 category System {
 
     abstract asset Machine
-    developer info: "Adapted from AWSLang"
+    developer info: "Adapted from AWSLang, set for finished now"
     {
 
         
@@ -37,9 +37,6 @@ category System {
 
     }
 
-
-
-
     asset Software extends Machine
         developer info: "Specifies the operating system, application, Virtual machine manager etc, running on the instances or on the machine. Adapted from Corelang"
     {
@@ -54,7 +51,7 @@ category System {
 
     }
 
-    asset NovaCompute extends Software
+    asset NovaService extends Software
     developer info: "This is the worker deamon that creates or terminates VM's trough hypervisor API's" 
     user info: "This is when a user has access to the Nova compute interface which controls the VM's"
     {
@@ -77,25 +74,126 @@ category System {
         developer info: "Qemu emulates vCpu, SMP, Soft MMU, I &T. Mech, I/O Network, Paravirtualized I/O, VM Exits, Hypercalls, "
         {
             
-            | compromisedAccess
-            developer info: "add stuff to break out of VirBox."
-                -> data.read
-
-
+            | outOfBoundsReadAndWrite
+                developer info"CVE-2017-11334"
+                -> guestInstanceCrash
             
+
+            | _machineAccess
+                sysData.read,
+                sysData.write,
+                sysData.delete
+            
+              
+         
 
     }
 
-    asset Instance extends QemuKVM
+    asset NovaInstance extends QemuKVM
            developer info: "Adapted from AWSLang, with minor changes. One instance is the  running on the machine" {
             
-            | compromisedAccess
-                -> stop
-            | stop
+            | connect 
+                developer info: "Attempt connection to the eg via shell, but the attacker has yet to authenticate"
+                -> authenticatedAccess
+        
+            | authenticate
+                developer info: "Does the attacker have the credentials to an account?."
+                -> authenticatedAccess
+
+            & authenticatedAccess
+                developer info: "One way to get access to the machine is trough legitimate authentication."
+                -> fullAccess
+
+            | fullAccess
+                developer info: "privileged user access"
+                ->  sysData.read,
+                    sysData.write,
+                    sysData.delete, 
+                    hypervisor.outOfBoundsReadAndWrite
+
+
 
     }
 
 
+}
+
+
+category DataResources{
+
+    asset Information
+        user info: "Represents any type of information that might be contained inside Data."
+    {
+      | attemptAccess
+        user info: "The attacker is attempting to access the information."
+    }
+
+    asset Data
+        developer info: "Adopted from AWSlang"
+        user info: "Any form of data that can be stored or transmitted"
+    {
+        | attemptAccess
+          user info: "Attempt to access the data, this might fail if the dataNotExist defense is used."
+          ->  access
+
+        & access
+          ->  attemptRead,
+              attemptWrite,
+              attemptDelete
+
+        # dataEncrypted
+          user info: "If the data are encrypted then accessing them requires the associated encryption credentials/key."
+          ->  decryptData
+
+        | decryptData
+          ->  access,
+              readContainedInformationAndData,
+              read,
+              write,
+              delete
+        
+        # dataNotExist
+          user info: "It models the probability of data actually not existing on the connected container (i.e. System, Application, Connection, etc.)."
+          ->  access,
+              readContainedInformationAndData,
+              read,
+              write,
+              delete
+    
+        & readContainedInformationAndData
+          user info: "From the data, attempt to access also the contained information/data, if exists."
+          ->  information.attemptAccess,
+              containedData.attemptAccess
+
+        | attemptRead
+          user info: "Attempt to read the data."
+          ->  read
+
+        | attemptWrite
+          user info: "Attempt to write on the data."
+          ->  write
+
+        | attemptDelete
+           user info: "Attempt to delete the data."
+          -> delete
+
+        & read {C}
+          user info: "The attacker can read the data."
+          ->  containedData.attemptRead,
+              readContainedInformationAndData
+
+        & write {I}
+          user info: "The attacker can write to the location of the data, effectively deleting it."
+          ->  containedData.attemptWrite,
+              delete
+
+        & delete {I,A}
+          user info: "The attacker can delete the data."
+          ->  containedData.attemptDelete
+
+
+
+    }
 
 }
 
@@ -103,10 +201,26 @@ associations {
     Machine [executor]  1..*  <--  Execution    -->    *  [executees]  Software
     developer info: "SW runs on the machine"
 
-    QemuKVM [Virtualization] 1..*  <-- Hardware --> * [VirtualizedHardware]  Instance
+    QemuKVM [Hypervisor] 1..*  <-- VirtHardware --> * [VirtualizedHardware]  NovaInstance
     developer info: "Qemu-KVM handles I/O emulation CPU emulation and virtual hardware for each instance"
 
-    NovaCompute [ControlVM]  1..*  <--  Orchestrates    -->    *  [ControlledVM]  Instance
+    NovaService [VMControl]  1..*  <--  Orchestrates    -->    *  [ControlledVM]  NovaInstance
     developer info: "Nova compute orchestrates the KVM-QEMU instances. Start/Stop/Delete"
+
+
+    // ### Data related associations
+     Data [containingData] * <-- DataContainment --> * [containedData]   Data
+      user info: "Data can be contained inside other data."
+    
+    Data [containedData] * <-- AppContainment --> * [containingApp]    Application
+      developer info: "An application should be able to contain some data."
+
+    Machine [system] 0..1 <-- DataHosting --> *  [sysData]   Data
+      user info: "A machine can host data."
+    
+    Data [containerData] * <-- InfoContainment --> *   [information]    Information
+      user info: "Data can contain information, as for example credentials." 
+    
+
 
 }
