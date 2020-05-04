@@ -57,12 +57,8 @@ category System {
     {
             
             | compromisedAccess
-            ->  ControlledVM.stop,
-                ControlledVM.deploy,
-                ControlledVM.delete,
-                ControlledVM.clone,
-                ControlledVM.snapshot
-                        
+            ->  libVirt.stop,
+                libVirt.delete                       
 
 
 
@@ -71,19 +67,18 @@ category System {
 
     asset QemuKVM extends Software
         developer info: "New asset for KVM-QEMU."
-        developer info: "Qemu emulates vCpu, SMP, Soft MMU, I &T. Mech, I/O Network, Paravirtualized I/O, VM Exits, Hypercalls, "
+        user info: "Qemu emulates vCpu, SMP, Soft MMU, I &T. Mech, I/O Network, Paravirtualized I/O, VM Exits, Hypercalls, "
         {
             
             | outOfBoundsReadAndWrite
-                developer info"CVE-2017-11334"
+                developer info: "CVE-2017-11334"
                 -> guestInstanceCrash
-            
 
-            | _machineAccess
-                sysData.read,
-                sysData.write,
-                sysData.delete
-            
+            | stop
+             developer info: "add DOS of Vm here"   
+
+            | delete
+            developer info: "add deletion of Vm here"   
               
          
 
@@ -105,7 +100,7 @@ category System {
                 -> fullAccess
 
             | fullAccess
-                developer info: "privileged user access"
+                developer info: "privileged user access, can read/Write/delete data"
                 ->  sysData.read,
                     sysData.write,
                     sysData.delete, 
@@ -204,9 +199,11 @@ associations {
     QemuKVM [Hypervisor] 1..*  <-- VirtHardware --> * [VirtualizedHardware]  NovaInstance
     developer info: "Qemu-KVM handles I/O emulation CPU emulation and virtual hardware for each instance"
 
-    NovaService [VMControl]  1..*  <--  Orchestrates    -->    *  [ControlledVM]  NovaInstance
+    NovaService [VMControl]  1..*  <--  Orchestrates    -->    *  [controlledVM]  NovaInstance
     developer info: "Nova compute orchestrates the KVM-QEMU instances. Start/Stop/Delete"
 
+    NovaService [VMControl]  1..*  <--  SystemMgMt    -->    *  [libVirt]  QemuKVM
+    developer info: "Nova compute orchestrates the KVM-QEMU instances. Start/Stop/Delete"
 
     // ### Data related associations
      Data [containingData] * <-- DataContainment --> * [containedData]   Data
