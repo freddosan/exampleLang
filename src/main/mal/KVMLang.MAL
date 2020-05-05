@@ -1,9 +1,28 @@
 #id: "org.mal-lang.coreLang"
 #version: "0.0.1"
 
+include "coreVulnerability.mal"
+include "VulnerabilityManual.mal"
+include "VulnerabilityAutomatic.mal"
+
 category System {
 
-    abstract asset Machine
+
+    abstract asset Object
+      developer info: "An object is the simplest form of an asset that can be compromised by a vulnerability."
+    {
+      | attemptUseVulnerability
+          ->  objvulnerabilities.attemptAbuse
+
+      | deny {A}
+        user info: "The attacker can deny some or all functionality of an object."
+
+      | attemptBypassAccessControl @hidden {C, I}
+        user info: "The attacker can bypass the access control and gain full access after a vulnerability is abused."
+    }
+
+
+    abstract asset Machine extends Object
     developer info: "Adapted from AWSLang, set for finished now"
     {
 
@@ -39,11 +58,145 @@ category System {
 
     asset Software extends Machine
         developer info: "Specifies the operating system, application, Virtual machine manager etc, running on the instances or on the machine. Adapted from Corelang"
-    {
-        
-        | access
-            
+    {     
+      //No attacks here yet, software assets is mainly an abstraction at the moment 
+      //To understand the architechture.         
 
+
+    }
+
+    asset SoftwareProduct
+      user info: "A software product is a specific type of software/application which can be associated with specific vulnerabilities."
+      developer info: "This asset is only introduces in order to imrpove the usability of the language."
+    {
+
+    }
+
+    asset Application extends Software
+      developer info: "Adopted from Corelang. An application specifies pretty much everything that is executed or can execute other applications."
+    {
+      //No changes from CoreLang, Applications run on VM's
+     
+      let allManualVulnerabilities = vulnerabilities[ManuallyModeledVulnerability] \/ appSoftProduct.softProductVulnerabilities[ManuallyModeledVulnerability]
+      let allUnknownVulnerabilities = vulnerabilities[UnknownVulnerability] \/ appSoftProduct.softProductVulnerabilities[UnknownVulnerability]
+      let allAutomaticVulnerabilities = (vulnerabilities \/ appSoftProduct.softProductVulnerabilities) - allManualVulnerabilities() - allUnknownVulnerabilities()
+
+      | localConnect
+        user info: "An attacker with low-privilege access on the executing instance is assumed to be able to locally (on the same host i.e. using loopback) interact with the application."
+        ->  localAccess,
+            connectLocalInteraction,
+            attemptUseVulnerability, // Connection to all possible (manual) vulnerabilities that might be connected to the Application
+            attemptLocalConnectVuln // And connection to automatically modeled vulnerabilities
+
+      | connectLocalInteraction @hidden
+        developer info: "This intermediate step is used to represent that at least one type of connect has happened before being able to interact locally."
+        ->  localInteraction
+
+      | identityLocalInteraction @hidden
+        developer info: "This intermediate step is needed because if no LowApplicationPrivileges Identity is associated then localInteraction would be instantly compromised after connect"
+        ->  localInteraction
+
+      & localInteraction
+        user info: "An attacker with low-privilege access on the executing instance is assumed to be able to locally (on the same host i.e. using loopback) interact with the executed applications."
+        ->  appExecutedApps.localConnect, // But also achieve localConnect on all child applications (this is something that needs to be reviewed again at a later stage)
+            attemptUseVulnerability,   // Connection to all possible vulnerabilities that might be connected to the Application
+            attemptLocalConnectVuln // And connection to automatically modeled vulnerabilities
+
+      | attemptUseVulnerability
+        user info: "Attempt to use the connected 'manual' vulnerabilities, when able to locally or via network connect to the application or when local interaction is possible."
+        ->  allManualVulnerabilities().attemptAbuse
+
+      | attemptLocalConnectVuln
+        user info: "An attacker with low-privilege access on the executing instance is assumed to be able to locally interact with the service."
+        developer info: "Adopted from awsLang."
+        -> allAutomaticVulnerabilities()[LLNNVulnerability].attemptAbuse,
+           allAutomaticVulnerabilities()[LLNRVulnerability].attemptAbuse,
+           allAutomaticVulnerabilities()[LLLNVulnerability].attemptAbuse,
+           allAutomaticVulnerabilities()[LLLRVulnerability].attemptAbuse,
+           allAutomaticVulnerabilities()[LLHNVulnerability].attemptAbuse,
+           allAutomaticVulnerabilities()[LLHRVulnerability].attemptAbuse,
+           allAutomaticVulnerabilities()[LHNNVulnerability].attemptAbuse,
+           allAutomaticVulnerabilities()[LHNRVulnerability].attemptAbuse,
+           allAutomaticVulnerabilities()[LHLNVulnerability].attemptAbuse,
+           allAutomaticVulnerabilities()[LHLRVulnerability].attemptAbuse,
+           allAutomaticVulnerabilities()[LHHNVulnerability].attemptAbuse,
+           allAutomaticVulnerabilities()[LHHRVulnerability].attemptAbuse
+
+      | attemptNetworkRequestRespondConnectVuln
+        developer info: "Adopted from awsLang."
+        -> allAutomaticVulnerabilities()[NLNNVulnerability].attemptAbuse,
+           allAutomaticVulnerabilities()[NLNRVulnerability].attemptAbuse,
+           allAutomaticVulnerabilities()[NLLNVulnerability].attemptAbuse,
+           allAutomaticVulnerabilities()[NLLRVulnerability].attemptAbuse,
+           allAutomaticVulnerabilities()[NLHNVulnerability].attemptAbuse,
+           allAutomaticVulnerabilities()[NLHRVulnerability].attemptAbuse,
+           allAutomaticVulnerabilities()[NHNNVulnerability].attemptAbuse,
+           allAutomaticVulnerabilities()[NHNRVulnerability].attemptAbuse,
+           allAutomaticVulnerabilities()[NHLNVulnerability].attemptAbuse,
+           allAutomaticVulnerabilities()[NHLRVulnerability].attemptAbuse,
+           allAutomaticVulnerabilities()[NHHNVulnerability].attemptAbuse,
+           allAutomaticVulnerabilities()[NHHRVulnerability].attemptAbuse
+
+      | networkConnect
+        user info: "An attacker can connect to any network exposed application."
+        ->  networkAccess,
+            connectLocalInteraction,
+            attemptUseVulnerability // Connection to all possible vulnerabilities that might be connected to the Application
+
+            
+      | networkRequestConnect
+        user info: "The attacker has successfully sent a request to the application."
+        developer info: "Adopted from awsLang."
+        ->  attemptNetworkRequestRespondConnectVuln,
+            networkConnect
+
+      | networkRespondConnect [Exponential(0.001)]
+        user info: "An attacker may be able to respond to requests submitted by an application."
+        developer info: "Adopted from awsLang."
+        ->  attemptNetworkRequestRespondConnectVuln,
+            networkConnect
+
+      | authenticate
+        user info: "The attacker is able to authenticate with the appropriate credentials."
+        ->  localAccess,
+            networkAccess
+
+      & localAccess @hidden
+        ->  access
+
+      & networkAccess @hidden
+        ->  access
+
+
+        //Removed: accessNetworkAndConnections
+      | access {C,I,A}
+        user info: "Legitimate access, as user or as administrator."
+        ->  read,
+            modify,
+            deny,
+            appExecutedApps.access, // Gain access on all applications executed by this (host) application
+            containedData.attemptAccess,   // and access on all the contained data
+            hostApp.localConnect    // and localConnect on the host application
+
+        //Removed executionPrivIds.assume
+      | codeExecution
+        user info: "Vulnerabilities in the application could allow an attacker to inject code into the service process, thus assuming the service's privileges on the hosting instance. An attacker could under these circumstances influence other applications or the underlying operating system itself."
+        developer info: "This attack steps specifically models the type of code injections which result in arbitrary code executions (e.g., buffer overflows), where the attacker can redirect the flow of execution, for example, by modifying program counter/instruction pointer of the host. (See CWE-94 on code injection <https://cwe.mitre.org/data/definitions/94.html> and, for example, CAPEC-100 on overflowing buffers <https://capec.mitre.org/data/definitions/100.html>). Adopted from awsLang."
+        ->  access,
+            modify
+
+      | read {C}
+        user info: "The attacker can read some or all of this service's code and data."
+        developer info: "We don't model the services data, as we do not expect that information will be available to the parser. We also don't differentiate between service administrators and service users (e.g., mail service admins and users), as we have no information about the services. Adopted from awsLang."
+        ->  containedData.attemptRead
+
+      | modify {I}
+        user info: "The attacker can modify some or all of this service's data. Adopted from awsLang."
+        ->  containedData.attemptAccess
+
+      | deny {A}
+        user info: "The attacker can deny some or all functionality and data pertaining to this service. Adopted from awsLang."
+        ->  containedData.attemptDelete
 
     }
 
@@ -73,9 +226,14 @@ category System {
             | outOfBoundsReadAndWrite
                 developer info: "CVE-2017-11334"
                 -> guestInstanceCrash
+            
+            | guestInstanceCrash
+              developer info: "add application dos here"
+              -> guestSysExecutedApps.deny 
 
             | stop
-             developer info: "add DOS of Vm here"   
+             developer info: "add DOS of Vm here"
+             -> guestSysExecutedApps.deny   
 
             | delete
             developer info: "add deletion of Vm here"   
@@ -104,7 +262,7 @@ category System {
                 ->  sysData.read,
                     sysData.write,
                     sysData.delete, 
-                    hypervisor.outOfBoundsReadAndWrite
+                    virtualizedHardware.outOfBoundsReadAndWrite
 
 
 
@@ -196,14 +354,26 @@ associations {
     Machine [executor]  1..*  <--  Execution    -->    *  [executees]  Software
     developer info: "SW runs on the machine"
 
-    QemuKVM [Hypervisor] 1..*  <-- VirtHardware --> * [VirtualizedHardware]  NovaInstance
+    Application      [hostApp]           0..1 <-- AppExecution          --> *   [appExecutedApps]        Application
+      developer info: "Application 1 runs application 2 runs application 3! (Where application 1 can be an OS, application 2 is a VM and application 3 is app running on the VM."
+  
+
+    SoftwareProduct  [appSoftProduct]    0..1 <-- AppSoftwareProduct    --> *   [softApplications]       Application
+        developer info: "An application can be associated with a software product that has some specific characteristics such as specific Vulnerabilities."
+  
+    //Put qemuKVMSpecific stuff under here -------------------------------------------------------------------
+
+    QemuKVM [hypervisor] 1..*  <-- VirtHardware --> * [virtualizedHardware]  NovaInstance
     developer info: "Qemu-KVM handles I/O emulation CPU emulation and virtual hardware for each instance"
 
-    NovaService [VMControl]  1..*  <--  Orchestrates    -->    *  [controlledVM]  NovaInstance
+    NovaService [virtualMachineManager]  1..*  <--  Orchestrates    -->    *  [controlledVM]  NovaInstance
     developer info: "Nova compute orchestrates the KVM-QEMU instances. Start/Stop/Delete"
 
-    NovaService [VMControl]  1..*  <--  SystemMgMt    -->    *  [libVirt]  QemuKVM
+    NovaService [vmControl]  1..*  <--  SystemMgMt    -->    *  [libVirt]  QemuKVM
     developer info: "Nova compute orchestrates the KVM-QEMU instances. Start/Stop/Delete"
+
+     QemuKVM [guestSystem]  0..1 <-- SysExecution --> *  [guestSysExecutedApps] Application
+    developer info: "NovaInstance is the instance 'guestSystem' on which Applications are running."
 
     // ### Data related associations
      Data [containingData] * <-- DataContainment --> * [containedData]   Data
