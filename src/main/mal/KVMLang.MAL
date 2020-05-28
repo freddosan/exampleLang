@@ -7,15 +7,15 @@ category System {
 
 
 
-    asset NovaService 
+    asset NovaService extends Software
     developer info: "Should it extend Application?? This is the worker deamon that creates or terminates VM's trough libVirt, which further controls QemuKVM" 
     user info: "This is when a user has access to the Nova Comand Line interface which controls the VM's"
     {
             
             | compromisedAccess
-            ->  libVirt.stop,
-                libVirt.delete
-                //server.stop, //Stop server -> (admin only --all-tenants) 
+            ->  Instace.stop,
+                Instance.delete,
+                controlledInstance.stop //Stop server. (admin only --all-tenants) 
                 //server.delete // Delete server (admin only --all-tenants)
             
 
@@ -23,7 +23,19 @@ category System {
 
     }
 
+     asset LSM extends Object
+      developer info: "New asset for KVM-QEMU. Linux security module."
+     {
 
+     }
+
+    asset SELinux extends LSM
+      developer info: "New asset for KVM-QEMU. Security enhanced linux provides RBAC.."
+     {
+       | LSM 
+        -> LSM.attemptUseVulnerability.exploit
+     }
+     
     asset QemuKVM extends Software
         developer info: "New asset for KVM-QEMU."
         user info: "Qemu emulates vCpu, SMP, Soft MMU, I &T. Mech, I/O Network, Paravirtualized I/O, VM Exits, Hypercalls, "
@@ -33,20 +45,24 @@ category System {
                 developer info: "CVE-2015-5158, 2015-7512, 2015-7504, 2017-10806"
                 -> guestInstanceDOS
 
-            | outOfBoundsReadAndWrite
-                developer info: "CVE-2017-11334"
+            | outOfBoundsReadORWrite
+                developer info: "CVE-2017-11334, CVE-2017-13672, CVE-2017-7718, CVE-2017-15289, CVE-2015-8619, CVE-2016-10029"
                 -> guestInstanceDOS
-            
+
+            | nullPointerDereference
+               developer info: " CVE-2017-12809"
+                ->  guestInstanceDOS
+
             | guestInstanceDOS
-              developer info: "add application dos here"
-              -> guestSysExecutedApps.deny 
+              developer info: "If instance goes down, this means DOS"
+              -> sysExecutedInstances.deny 
 
             | stop
              developer info: "add DOS of Vm here"
-             -> guestSysExecutedApps.deny  
+             -> sysExecutedInstances.deny  
 
             | delete
-            developer info: "add deletion of Vm here"
+              developer info: "Removal of an instance would result in DOS and loss of data"
 
             | fd_CMD_READ_ID
               developer info: "CVE-2015-3456, VENOM, fd_CMD_READ_ID attack vector"
@@ -54,11 +70,14 @@ category System {
             
 
             #patchOrUpdate   
-              -> bufferOverflow
+              -> bufferOverflow,
+                fd_CMD_READ_ID,
+                outOfBoundsReadORWrite
+
              
     }
 
-    asset Instance 
+    asset Instance extends Object
            developer info: "Adapted from AWSLang, with minor changes. One instance is the  running on the machine" {
             
             | connect 
@@ -73,42 +92,38 @@ category System {
                 developer info: "One way to get access to the machine is trough legitimate authentication."
                 -> fullAccess
 
+
             | fullAccess
                 developer info: "privileged user access, can read/Write/delete data, stop instance"
-                ->  containedData.read,
-                    containedData.write,
-                    containedData.delete, 
-                    hypervisor.outOfBoundsReadAndWrite,
-                    deviceEmulation,
-                    venomFDC
+                ->  containedData.attemptRead,
+                    containedData.attemptWrite,
+                    containedData.attemptDelete, 
+                    hypervisor.outOfBoundsReadORWrite,
+                    deviceEmulationExploit,
+                    venomFDC,
+                    deny
             
             | stop
               developer info:"instance is stopped /shutdown DOS"
 
-            | deviceEmulation
+            | deviceEmulationExploit
              developer info: "CVE-2015-5158, 2015-7512, 2015-7504, 2017-10806"
-              -> hypervisor.bufferOverflow
+              -> hypervisor.bufferOverflow,
+                hypervisor.nullPointerDereference
             
             | venomFDC
               developer info: "CVE-2015-3456, VENOM"
               ->hypervisor.fd_CMD_READ_ID
 
-            
+            | deny {A}
+              -> guestSysExecutedApps.deny
 
     }
-
 
 }
 
 associations {
 
-    Machine [executor]  1..*  <--  Execution    -->    *  [executees]  Application
-    developer info: "SW runs on the machine"
-
-    
-    Application [hostApp] 0..1 <-- AppExecution --> *   [appExecutedApps] Application
-      developer info: "Application 1 runs application 2 runs application 3! (Where application 1 can be an OS, application 2 is a VM and application 3 is app running on the VM."
-   
     //Put qemuKVM Specific stuff under here -------------------------------------------------------------------
 
     
@@ -116,35 +131,25 @@ associations {
     developer info: "Qemu-KVM handles I/O emulation CPU emulation and virtual hardware for each instance"  
 
 
-    QemuKVM [hypervisor] 1..*  <-- VirtHardware --> * [virtualizedHardware]  Instance
+    QemuKVM [hypervisor] 1..*  <-- VirtHardware --> * [sysExecutedInstances]  Instance
     developer info: "Qemu-KVM handles I/O emulation CPU emulation and virtual hardware for each instance"
 
 
-    NovaService [vmControl]  1  <--  SystemMgMt    -->    *  [libVirt]  QemuKVM
+    NovaService [InstanceMGMT]  1  <--  HypervisorMGMT_Via_Libvirt   -->    *  [Instances]  QemuKVM
     developer info: "Nova compute orchestrates the KVM-QEMU instances. Start/Stop/Delete"
 
-     QemuKVM [guestSystem]  0..1 <-- SysExecution --> *  [guestSysExecutedApps] Application
+     Instance [guestExecutor]  0..1 <-- SysExecution --> *  [guestSysExecutedApps] Application
     developer info: "The instance 'guestSystem' on which Applications are running."
   
   //Put Instance Specific stuff under here -------------------------------------------------------------------
      Data [containedData] * <-- InstanceContainment --> * [containingInstance]    Instance
       developer info: "An instance should be able to contain some data."
 
+
     NovaService [virtualMachineManager]  1..*  <--  Orchestrates    -->    *  [controlledInstance]  Instance
         developer info: "Nova compute orchestrates the KVM-QEMU instances. Start/Stop/Delete"
 
-    //------------------------------- ### Data related associations
-     Data [containingData] * <-- DataContainment --> * [containedData]   Data
-      user info: "Data can be contained inside other data."
-    
-    Data [containedData] * <-- AppContainment --> * [containingApp]    Application
-      developer info: "An application should be able to contain some data."
-
-    Machine [system] 0..1 <-- DataHosting --> *  [sysData]   Data
-      user info: "A machine can host data."
-    
-    Data [containerData] * <-- InfoContainment --> *   [information]    Information
-      user info: "Data can contain information, as for example credentials." 
+   
     
 
 

@@ -1,10 +1,13 @@
 
 category System {
 
-abstract asset Object
+    abstract asset Object
       developer info: "An object is the simplest form of an asset that can be compromised by a vulnerability."
     {
       | attemptUseVulnerability
+
+      | deny {A}
+      user info: "The Attacker can deny some or all functionality of an object"
           
     }
 
@@ -27,7 +30,6 @@ abstract asset Object
         | compromisedAccess
             developer info: "this is for when the KeyStone Account is compromised."
             -> fullAccess
-            
 
         | fullAccess
             ->  _machineAccess
@@ -38,6 +40,7 @@ abstract asset Object
                 sysData.read,
                 sysData.write,
                 sysData.delete,
+                li
                 
 
         | denialOfService
@@ -52,7 +55,7 @@ abstract asset Object
 
     }
 
- abstract asset Software extends Object
+  abstract asset Software extends Object
         developer info: "Specifies the operating system, application, Virtual machine manager etc, running on the instances or on the machine. Adapted from Corelang"
     {     
       //No attacks here yet, software assets is mainly an abstraction at the moment 
@@ -62,7 +65,7 @@ abstract asset Object
     }
 
 
-asset Application extends Software
+asset Application extends Object
       developer info: "Adopted from Corelang. An application specifies pretty much everything that is executed or can execute other applications."
     {
       //No changes from CoreLang, Applications run on VM's
@@ -109,24 +112,25 @@ asset Application extends Software
             networkAccess
 
       & localAccess @hidden
-        ->  access
+        ->  fullAccess
 
       & networkAccess @hidden
-        ->  access
+        ->  fullAccess
 
-      | access {C,I,A}
+      | fullAccess {C,I,A}
         user info: "Legitimate access, as user or as administrator."
         ->  read,
             modify,
             deny,
-            appExecutedApps.access, // Gain access on all applications executed by this (host) application
+            appExecutedApps.fullAccess, // Gain access on all applications executed by this (host) application
+            containedData.attemptAccess,     //And access the contained data
             hostApp.localConnect    // and localConnect on the host application
 
-        //Removed executionPrivIds.assume
+
       | codeExecution
         user info: "Vulnerabilities in the application could allow an attacker to inject code into the service process, thus assuming the service's privileges on the hosting instance. An attacker could under these circumstances influence other applications or the underlying operating system itself."
         developer info: "This attack steps specifically models the type of code injections which result in arbitrary code executions (e.g., buffer overflows), where the attacker can redirect the flow of execution, for example, by modifying program counter/instruction pointer of the host. (See CWE-94 on code injection <https://cwe.mitre.org/data/definitions/94.html> and, for example, CAPEC-100 on overflowing buffers <https://capec.mitre.org/data/definitions/100.html>). Adopted from awsLang."
-        ->  access,
+        ->  fullAccess,
             modify
 
       | read {C}
@@ -224,4 +228,28 @@ category DataResources{
 
 
     }
+}
+
+associations {
+
+    Machine [executor]  1..*  <--  Execution    -->    *  [executees]  Application
+    developer info: "SW runs on the machine"
+
+
+    
+    Application [hostApp] 0..1 <-- AppExecution --> *   [appExecutedApps] Application
+      developer info: "Application 1 runs application 2 runs application 3! (Where application 1 can be an OS, application 2 is a VM and application 3 is app running on the VM."
+    
+    //------------------------------- ### Data related associations
+     Data [containingData] * <-- DataContainment --> * [containedData]   Data
+      user info: "Data can be contained inside other data."
+    
+    Data [containedData] * <-- AppContainment --> * [containingApp]    Application
+      developer info: "An application should be able to contain some data."
+
+    Machine [system] 0..1 <-- DataHosting --> *  [sysData]   Data
+      user info: "A machine can host data."
+    
+    Data [containerData] * <-- InfoContainment --> *   [information]    Information
+      user info: "Data can contain information, as for example credentials." 
 }
