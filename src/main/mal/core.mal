@@ -12,12 +12,12 @@ category System {
     }
 
 
-    abstract asset Machine extends Object
+    abstract asset System extends Object
     developer info: "Adapted from AWSLang"
     {      
         | connect 
            developer info: "Attempt connection to the eg via shell, but the attacker has yet to authenticate"
-            -> authenticatedAccess
+            -> authenticate
         
         | authenticate
            developer info: "Does the attacker have the credentials to an account?."
@@ -27,42 +27,32 @@ category System {
             developer info: "One way to get access to the machine is trough legitimate authentication."
             -> fullAccess
     
-        | compromisedAccess
-            developer info: "this is for when the KeyStone Account is compromised."
-            -> fullAccess
-
+        
         | fullAccess
             ->  _machineAccess
 
         | _machineAccess
           developer info: "if access to machine, its possible to read data from instances."
             ->  denialOfService,
-                sysData.read,
-                sysData.write,
-                sysData.delete,
-                li
+                sysData.attemptRead,
+                sysData.attemptWrite,
+                sysData.attemptDelete,
+                novaCli.attemptUse
                 
 
         | denialOfService
-            -> executees.deny
+            -> deny
 
         # hardwareMemoryEncryption
           developer info: "Does not protect against Denial of service. https://developer.amd.com/wordpress/media/2013/12/AMD_Memory_Encryption_Whitepaper_v7-Public.pdf"
           user info: "To protect VM in runtime, hardware encryption is needed SME/SEV or MKTME. The encryption protects against the threat that the attacker has access to execute user privileged code or higher privileged code (or malware). on the hypervisor."
-          ->  sysData.read,
-              sysData.write
-              //sysData.delete : The attacker could still delete data if its encrypted.
+          ->  sysData.attemptRead,
+              sysData.attemptWrite
+              //sysData.delete : The attacker could still delete data if its encrypted
 
     }
 
-  abstract asset Software extends Object
-        developer info: "Specifies the operating system, application, Virtual machine manager etc, running on the instances or on the machine. Adapted from Corelang"
-    {     
-      //No attacks here yet, software assets is mainly an abstraction at the moment 
-      //To understand the architechture.         
 
-
-    }
 
 
 asset Application extends Object
@@ -159,8 +149,8 @@ category DataResources{
     }
 
     asset Data
-        developer info: "Adopted from AWSlang"
-        user info: "Any form of data that can be stored or transmitted"
+        developer info: "Adopted from AWSlang, Encryption: https://docs.openstack.org/project-deploy-guide/openstack-ansible/draft/overview-storage-arch.html , Storage Nova: https://docs.openstack.org/project-deploy-guide/openstack-ansible/draft/overview-storage-arch.html"
+        user info: "Any form of data that can be stored or transmitted. The data in a nova instance is not persistence, the disks associated with the VM's are ephermal, meaning from the users perspective they disappear when a VM is deleted."
     {
         | attemptAccess
           user info: "Attempt to access the data, this might fail if the dataNotExist defense is used."
@@ -232,10 +222,12 @@ category DataResources{
 
 associations {
 
-    Machine [executor]  1..*  <--  Execution    -->    *  [executees]  Application
-    developer info: "SW runs on the machine"
+    //------------------------------- ### System/Application related associations
+    //System [executor]  1..*  <--  Execution    -->    *  [executees]  Application
+    //developer info: "SW runs on the machine -> moved to SW runs on instances"
 
-
+    System [executor]  1..*  <--  ExecutesnovaCli    -->    1  [novaCli]  NovaService
+      developer info: "NovaCli runs on the machine"
     
     Application [hostApp] 0..1 <-- AppExecution --> *   [appExecutedApps] Application
       developer info: "Application 1 runs application 2 runs application 3! (Where application 1 can be an OS, application 2 is a VM and application 3 is app running on the VM."
@@ -247,8 +239,8 @@ associations {
     Data [containedData] * <-- AppContainment --> * [containingApp]    Application
       developer info: "An application should be able to contain some data."
 
-    Machine [system] 0..1 <-- DataHosting --> *  [sysData]   Data
-      user info: "A machine can host data."
+    System [system] 0..1 <-- DataHosting --> *  [sysData]   Data
+      user info: "A system can host data."
     
     Data [containerData] * <-- InfoContainment --> *   [information]    Information
       user info: "Data can contain information, as for example credentials." 
