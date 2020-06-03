@@ -28,9 +28,9 @@ category System {
      }
 
     asset SELinux extends LSM
-      developer info: "New asset for KVM-QEMU. Security Enhanced Linux restricts the privileges of the qemu process by establishing security boundaries, so if an attacker would compromise the hypervisor, sVirt restricts the VM's access outside of its boundaries "
+      developer info: "New asset for KVM-QEMU. Security-Enhanced Linux restricts the privileges of the qemu process by establishing security boundaries, so if an attacker would compromise the hypervisor, sVirt restricts the VM's access outside of its boundaries "
      {
-        # enabledsVirt
+        # enabled_sVirt
         developer info: "If sVirt is enabled, MAC is enforced to the VM's running on the host. The attack cannot proceed outside of the VM-process boundaries."     
      }
      
@@ -48,29 +48,30 @@ category System {
                 -> guestInstanceDOS
 
             | nullPointerDereference
-               developer info: " CVE-2017-12809"
+               developer info: "CVE-2017-12809"
                 ->  guestInstanceDOS
 
             | guestInstanceDOS
-              developer info: "If instance goes down, this means DOS"
+              developer info: "If an instance goes down, this means DenialOfService"
               -> sysExecutedInstances.deny 
 
             | stop
-             developer info: "add DOS of Vm here"
+             developer info: "If an instance is stopped, this means DenialOfService"
              -> sysExecutedInstances.deny  
 
             | delete
               developer info: "Removal of an instance would result in DOS and loss of data"
+              -> sysExecutedInstances.delete  
 
             !E fd_CMD_READ_ID
               developer info: "CVE-2015-3456, VENOM, fd_CMD_READ_ID attack vector"
-              user info: "check if Selinux exist otherwise do attack."
+              user info: "If SELinux is disabled, it's possible to proceed with the an successful attack."
               <- sVirt
               -> executor.fullAccess
             
 
             #patchStatus
-             developer info: "Ensure the qemu/KVM is patch up-to-date, and it's patched correctly"   
+             developer info: "Ensure the Qemu/KVM is patch up-to-date, and it's patched correctly"   
               -> bufferOverflow,
                 fd_CMD_READ_ID,
                 outOfBoundsReadORWrite,
@@ -96,27 +97,27 @@ category System {
 
 
             | fullAccess
-                developer info: "privileged user access, can read/Write/delete data, stop instance"
+                developer info: "privileged user access, can read/Write/delete data, and stop an instance"
                 ->  containedData.attemptRead,
                     containedData.attemptWrite,
                     containedData.attemptDelete, 
-                    hypervisor.outOfBoundsReadORWrite,
                     deviceEmulationExploit,
                     venomFDC,
                     deny,
                     stop
             
             | stop
-              developer info:"instance is stopped /shutdown DOS"
+              developer info:"The instance is stopped /shutdown result is DOS"
               -> deny
             
             | delete
-              developer info:"instance is removed, since the instance uses ephemeral storage, removal of instance reult in loss of data."
+              developer info:"the instance is removed, since the instance uses ephemeral storage, removal of instance result in loss of data."
               -> containedData.attemptDelete
 
             | deviceEmulationExploit
-             developer info: "CVE-2015-5158, 2015-7512, 2015-7504, 2017-10806"
+             developer info: "CVE-2015-5158, CVE-2015-7512, CVE-2015-7504, CVE-2017-10806, CVE-2016-3710"
               -> hypervisor.bufferOverflow,
+                hypervisor.outOfBoundsReadORWrite,
                 hypervisor.nullPointerDereference
             
             | venomFDC
@@ -134,31 +135,25 @@ associations {
 
     
     //------------------------------- ### qemuKVM/System/Instance related associations
-    QemuKVM [hypervisor] 1..*  <-- VirtHardware --> * [executor]  System
-    developer info: "Qemu-KVM handles I/O emulation CPU emulation and virtual hardware for each instance"  
+      System [executor] 1 <-- VirtHardware --> 0..1 [hypervisor] QemuKVM  
+    developer info: "The system executes the Qemu virtulizer and the KVM converts the system kernel into a hypervisor."  
 
-    QemuKVM [hypervisor] 1..*  <-- VirtHardware --> * [sysExecutedInstances]  Instance
-    developer info: "Qemu-KVM handles I/O emulation CPU emulation and virtual hardware for each instance"
+    QemuKVM [hypervisor] 0..1  <-- VirtHardware --> 1..* [sysExecutedInstances] Instance
+    developer info: "Qemu-KVM handles I/O emulation CPU emulation and virtual hardware for each instance. Each instance have their own Qemu-process tied to the instance."
 
-    NovaService [InstanceMGMT]  1  <--  Orchestrates   -->    *  [Instances]  QemuKVM
-    developer info: "Nova compute orchestrates the KVM-QEMU instances. Start/Stop/Delete"
+    NovaService [InstanceMGMT]  0..1  <--  OrchestratesInstancesViaLibvirt -->  1..*  [Instances]  QemuKVM
+    developer info: "Nova compute orchestrates the KVM-QEMU instances."
    
    //------------------------------- ### Data related associations
     Data [containedData] * <-- InstanceContainment --> * [containingInstance]    Instance
     developer info: "An instance should be able to contain some data."
 
-    Instance [guestExecutor]  0..1 <-- SysExecution --> *  [guestSysExecutedApps] Application
+    Instance [guestExecutor]  0..* <-- SysExecution --> *  [guestSysExecutedApps] Application
     developer info: "The instance 'guestSystem' on which Applications are running."
 
-   // NovaService [virtualMachineManager]  1..*  <--  Orchestrates    -->    *  [controlledInstance]  Instance
-   //     developer info: "Nova compute orchestrates the KVM-QEMU instances. Start/Stop/Delete"
-
    //------------------------------- ### LSM related associations
-  QemuKVM [hypervisor] 1..*  <-- LinuxSecurityModule --> * [sVirt]  SELinux
-    developer info: "Qemu-KVM handles I/O emulation CPU emulation and virtual hardware for each instance"
-
-   
-    
+   SELinux [sVirt] 0..1  <-- LinuxSecurityModule --> 0..1 [hypervisor]  QemuKVM
+    developer info: "SELinux provides MAC framework for the virtual machines"
 
 
 }

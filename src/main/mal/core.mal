@@ -223,8 +223,6 @@ category DataResources{
 associations {
 
     //------------------------------- ### System/Application related associations
-    //System [executor]  1..*  <--  Execution    -->    *  [executees]  Application
-    //developer info: "SW runs on the machine -> moved to SW runs on instances"
 
     System [executor]  1..*  <--  ExecutesnovaCli    -->    1  [novaCli]  NovaService
       developer info: "NovaCli runs on the machine"
