@@ -12,18 +12,18 @@ category System {
     }
 
 
-    abstract asset System extends Object
+    asset System extends Object
     developer info: "Adapted from AWSLang"
     {      
         | connect 
            developer info: "Attempt connection to the eg via shell, but the attacker has yet to authenticate"
-            -> authenticate
+            -> attemptGainFullAccess
         
         | authenticate
            developer info: "Does the attacker have the credentials to an account?."
-            -> authenticatedAccess
+            -> attemptGainFullAccess
 
-        & authenticatedAccess
+        & attemptGainFullAccess
             developer info: "One way to get access to the machine is trough legitimate authentication."
             -> fullAccess
     
@@ -34,11 +34,12 @@ category System {
         | _machineAccess
           developer info: "if access to machine, its possible to read data from instances."
             ->  denialOfService,
-                sysData.attemptRead,
-                sysData.attemptWrite,
-                sysData.attemptDelete,
+                sysData.attemptAccess,
                 novaCli.attemptUse
-                
+                //sysData.attemptRead,
+                //sysData.attemptWrite,
+                //sysData.attemptDelete,
+                                
 
         | denialOfService
             -> deny
@@ -220,6 +221,31 @@ category DataResources{
     }
 }
 
+category Networking {
+
+  asset Network
+      user info: "A network zone is a set of network accessible applications."
+    {
+      | physicalAccess {A}
+        developer info: "Attacker has physical access on the network. This means he can cut wires/fibers and also connect using iLOs."
+        ->  denialOfService
+
+
+      | access
+        user info: "Access provides connect to all reachable applications."
+        ->  applications.networkConnect,
+            denialOfService
+            
+
+      | denialOfService {A}
+        user info: "If a DoS is performed it affects, the applications communicatiing over the network as well as the connected application."
+        ->  applications.deny
+
+    }
+
+
+}
+
 associations {
 
     //------------------------------- ### System/Application related associations
@@ -242,4 +268,7 @@ associations {
     
     Data [containerData] * <-- InfoContainment --> *   [information]    Information
       user info: "Data can contain information, as for example credentials." 
+    //------------------------------- ### Network related associations
+      Network          [networks]             * <-- NetworkExposure       --> *   [applications]           Application
+      user info: "An application can communicate / be exposed on a network."
 }

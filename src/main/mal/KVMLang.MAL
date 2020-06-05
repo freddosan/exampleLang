@@ -1,4 +1,4 @@
-#id: "org.mal-lang.KVMLang"
+#id: "com.example.kvmlang"
 #version: "0.0.1"
 
 include "core.mal"
