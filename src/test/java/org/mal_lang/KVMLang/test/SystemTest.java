@@ -27,9 +27,24 @@ public class SystemTest extends KVMLangTest {
         model.addAttacker(attacker,model.system.connect);
         attacker.attack();
 
-        //model.system.specificAccess.assertUncompromised();
+        
         model.system.attemptGainFullAccess.assertUncompromised();
         model.system.fullAccess.assertUncompromised();
+    }
+
+    @Test
+    public void testConnectAndAuthenticate() {
+        printTestName(Thread.currentThread().getStackTrace()[1].getMethodName());
+        var model = new SystemTestModel();
+
+        var attacker = new Attacker();
+        model.addAttacker(attacker,model.system.connect);
+        model.addAttacker(attacker,model.system.authenticate);
+        attacker.attack();
+
+        model.system.attemptGainFullAccess.assertCompromisedInstantaneously();
+        model.system.fullAccess.assertCompromisedInstantaneously();
+        model.system._machineAccess.assertCompromisedInstantaneously();
     }
     
 }
