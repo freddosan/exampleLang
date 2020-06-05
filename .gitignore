@@ -1,1 +1,9 @@
 target/
+
+
+### VisualSudioCode ###
+.vscode/*
+
+.project
+.classpath
+.settings/
