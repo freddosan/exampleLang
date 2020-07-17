@@ -7,15 +7,12 @@ import org.junit.jupiter.api.Test;
 public class DataTest extends KVMLangTest {
     
     private static class DataTestModel {
-        public final Data data1 = new Data("data1", false, false);
-        public final Data data2 = new Data("data2", false, false);
-        public final Data encdata = new Data("encData", false, false);
-        public final Data notexistdata = new Data("notexistdata", false, true);
+        public final Data data1 = new Data("data1", false);
+        public final Data data2 = new Data("data2", false);
+        public final Data encdata = new Data("encData", false);
+        public final Data notexistdata = new Data("notexistdata", true);
 
-        /**
-         * Lägga till data3 för att kolla att data ej går att nå?
-         * 
-         */
+      
         public DataTestModel() {
             data1.addContainedData(data2);
             data1.addContainedData(encdata);
@@ -26,7 +23,7 @@ public class DataTest extends KVMLangTest {
             attacker.addAttackPoint(attackpoint);
         }
      }
-    @Test
+     @Test
     public void testDataInData() {
         printTestName(Thread.currentThread().getStackTrace()[1].getMethodName());
         var model = new DataTestModel();
@@ -38,6 +35,9 @@ public class DataTest extends KVMLangTest {
         model.data1.access.assertCompromisedInstantaneously();
         model.data1.readContainedInformationAndData.assertCompromisedInstantaneously();
         model.data2.access.assertCompromisedInstantaneously();
+       
+        //EJ KLAR DETTA MÅSTE FIXAS!!! 
+
         //model.encdata.access.assertUncompromised();
         model.notexistdata.access.assertUncompromised();
     }
@@ -60,16 +60,15 @@ public class DataTest extends KVMLangTest {
         model.data2.write.assertUncompromised();
         model.data2.delete.assertUncompromised();
 
-        //model.encdata.access.assertUncompromised();
-        //model.encdata.read.assertUncompromised();
-        //model.encdata.write.assertUncompromised();
-        //model.encdata.delete.assertUncompromised();
+        model.encdata.access.assertUncompromised();
+        model.encdata.read.assertUncompromised();
+        model.encdata.write.assertUncompromised();
+        model.encdata.delete.assertUncompromised();
 
         model.notexistdata.access.assertUncompromised();
         model.notexistdata.read.assertUncompromised();
         model.notexistdata.write.assertUncompromised();
         model.notexistdata.delete.assertUncompromised();
     }
-
-    
+ 
 }

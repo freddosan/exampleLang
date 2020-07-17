@@ -11,6 +11,8 @@ category System {
           
     }
 
+    
+
 
     asset System extends Object
     developer info: "Adapted from AWSLang"
@@ -64,27 +66,29 @@ asset Application extends Object
       | localConnect
         user info: "An attacker with low-privilege access on the executing instance is assumed to be able to locally (on the same host i.e. using loopback) interact with the application."
         ->  localAccess,
-            connectLocalInteraction
+            specificAccessFromConnection
+            //connectLocalInteraction
 
-      | connectLocalInteraction @hidden
+      | specificAccessFromConnection  @hidden
         developer info: "This intermediate step is used to represent that at least one type of connect has happened before being able to interact locally."
-        ->  localInteraction
+        -> specificAccess 
+          //localInteraction
 
-      | identityLocalInteraction @hidden
+      | specificAccessFromIdentity  @hidden
         developer info: "This intermediate step is needed because if no LowApplicationPrivileges Identity is associated then localInteraction would be instantly compromised after connect"
-        ->  localInteraction
+        ->  specificAccess
 
-      & localInteraction
+      & specificAccess
         user info: "An attacker with low-privilege access on the executing instance is assumed to be able to locally (on the same host i.e. using loopback) interact with the executed applications."
-        ->  appExecutedApps.localConnect, // But also achieve localConnect on all child applications (this is something that needs to be reviewed again at a later stage)
-            attemptUseVulnerability   // Connection to all possible vulnerabilities that might be connected to the Application
+        ->  appExecutedApps.localConnect // But also achieve localConnect on all child applications (this is something that needs to be reviewed again at a later stage)
+            //attemptUseVulnerability   // Connection to all possible vulnerabilities that might be connected to the Application
             
       
       | networkConnect
         user info: "An attacker can connect to any network exposed application."
         ->  networkAccess,
-            connectLocalInteraction,
-            attemptUseVulnerability // Connection to all possible vulnerabilities that might be connected to the Application
+            specificAccessFromConnection
+            //attemptUseVulnerability // Connection to all possible vulnerabilities that might be connected to the Application
 
             
       | networkRequestConnect
@@ -162,8 +166,9 @@ category DataResources{
               attemptWrite,
               attemptDelete
 
-        # dataEncrypted
+        !E dataEncrypted
           user info: "If the data are encrypted then accessing them requires the associated encryption credentials/key."
+          <-  secureVirtualization[HardwareMemoryEncryption]
           ->  decryptData
 
         | decryptData
@@ -238,7 +243,7 @@ category Networking {
             
 
       | denialOfService {A}
-        user info: "If a DoS is performed it affects, the applications communicatiing over the network as well as the connected application."
+        user info: "If a DoS is performed it affects, the applications communicating over the network as well as the connected application."
         ->  applications.deny
 
     }

@@ -5,6 +5,13 @@ include "core.mal"
 
 category System {
 
+    asset Machine{
+
+    }
+
+    asset HardwareMemoryEncryption extends Machine{
+      //If the machine supports AMD-SEV or Intel-MKTME, the data in use is encrypted.
+    }
 
 
     asset NovaService extends System
@@ -71,7 +78,6 @@ category System {
             !E fd_CMD_READ_ID
               developer info: "CVE-2015-3456, VENOM, fd_CMD_READ_ID attack vector"
               user info: "If SELinux is disabled, it's possible to proceed with the an successful attack."
-              //<- sVirt
               <- svirt[SELinux]
               -> venomExploit
     
@@ -129,21 +135,21 @@ category System {
                 outOfBoundsRead,
                 nullPointerDereference
                 
-          
-            | nullPointerDereference
-              developer info: "CWE-476: NULL Pointer Dereference"
-              -> attemptNullPointerDereference
-            
-            | outOfBoundsRead
-              developer info: "CWE-125: Out-of-bounds Read"
-            -> attemptExploitOutOfBoundsRead
-            
             | improperMemoryBounds
               developer info: "CVE-2015-5158, CWE-119: Improper Restriction of Operations within the Bounds of a Memory Buffer"
               user info: "Exploits connected to: CVE-2015-5158, CVE-2015-7512, CVE-2015-7504, CVE-2017-10806, CVE-2017-10806, CVE-2016-3710"
               //user info: "deviceEmulationExploit -> [Vulnerability] -> [Exploit] -> hypervisor.<exploit>"
               -> attemptExploitBufferOverflow,
                 venomFDC
+          
+            
+            | outOfBoundsRead
+              developer info: "CWE-125: Out-of-bounds Read"
+            -> attemptExploitOutOfBoundsRead
+            
+            | nullPointerDereference
+              developer info: "CWE-476: NULL Pointer Dereference"
+              -> attemptNullPointerDereference
 
 
             | attemptNullPointerDereference
@@ -178,14 +184,10 @@ associations {
 
     System [system]  1..*  <--  ExecutesSubSystems    -->    0..*  [subSystems]  System
       developer info: "Subsystems runs on the machine"
-
-    //System [subSystems]  0..1  <--  SubSystemNovaCli    -->    0..1  [subSystem]  NovaService
-    //  developer info: "NovaCli is a subsystem"
     
     //------------------------------- ### qemuKVM/System/Instance related associations
-    System [executor] 1 <-- VirtHardware --> 0..1 [hypervisor] QemuKVM  
+    System [executor] 1 <-- ExecutesVirtHardware --> 0..1 [hypervisor] QemuKVM  
     developer info: "The system executes the Qemu virtulizer and the KVM converts the system kernel into a hypervisor."  
-
 
     QemuKVM [hypervisor] 0..1  <-- VirtHardware --> 1..* [sysExecutedInstances] Instance
     developer info: "Qemu-KVM handles I/O emulation CPU emulation and virtual hardware for each instance. Each instance have their own Qemu-process tied to the instance."
@@ -200,11 +202,14 @@ associations {
     Instance [guestExecutor]  0..* <-- SysExecution --> *  [guestSysExecutedApps] Application
     developer info: "The instance 'guestSystem' on which Applications are running."
 
+    Data [encryptedData] * <-- DataEncryption --> 0..1 [secureVirtualization]    Machine
+    developer info: "The VM data can be encrypted during use."
+
    //------------------------------- ### LSM related associations
     //SELinux [sVirt] 0..1  <-- LinuxSecurityModule --> 0..1 [hypervisor]  QemuKVM
     //developer info: "SELinux provides MAC framework for the virtual machines"
 
-    LSM [svirt] 0..1  <-- LinuxSecurityModule --> 0..1 [ONLYFORTEST]  QemuKVM
+    LSM [svirt] 0..1  <-- LinuxSecurityModule --> 0..1 [hypervisor]  QemuKVM
     developer info: "SELinux provides MAC framework for the virtual machines"
 
 
