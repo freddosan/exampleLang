@@ -38,9 +38,7 @@ category System {
             ->  denialOfService,
                 sysData.attemptAccess,
                 subSystems[NovaService].attemptUseCLI
-                //sysData.attemptRead,
-                //sysData.attemptWrite,
-                //sysData.attemptDelete,
+                
                                 
 
         | denialOfService

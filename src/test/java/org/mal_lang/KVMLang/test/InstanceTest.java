@@ -8,8 +8,12 @@ public class InstanceTest extends KVMLangTest{
 
     private static class InstanceTestModel {
         public final Instance instance = new Instance("instance");
+        public final QemuKVM virtulization = new QemuKVM("virtulization");
 
         public InstanceTestModel() {
+            //Kanske byta namn: hypervisor-> add Instance. 
+            instance.addHypervisor(virtulization);
+            virtulization.addSysExecutedInstances(instance);
 
         }
 
@@ -19,7 +23,6 @@ public class InstanceTest extends KVMLangTest{
   }
 
   @Test
-  
   public void testNoAuthenticate() {
     printTestName(Thread.currentThread().getStackTrace()[1].getMethodName());
     var model = new InstanceTestModel();
@@ -33,20 +36,58 @@ public class InstanceTest extends KVMLangTest{
     model.instance.fullAccess.assertUncompromised();
 }
 
-public void testConnectAndAuthenticate() {
-    printTestName(Thread.currentThread().getStackTrace()[1].getMethodName());
-    var model = new InstanceTestModel();
+    @Test
+    public void testConnectAndAuthenticate() {
+        printTestName(Thread.currentThread().getStackTrace()[1].getMethodName());
+        var model = new InstanceTestModel();
 
-    var attacker = new Attacker();
-    model.addAttacker(attacker,model.instance.connect);
-    model.addAttacker(attacker,model.instance.authenticate);
-    attacker.attack();
+        var attacker = new Attacker();
+        model.addAttacker(attacker,model.instance.connect);
+        model.addAttacker(attacker,model.instance.authenticate);
+        attacker.attack();
 
-    model.instance.authenticatedAccess.assertCompromisedInstantaneously();
-    model.instance.fullAccess.assertCompromisedInstantaneously();
-  
-    
-}
+        model.instance.authenticatedAccess.assertCompromisedInstantaneously();
+        model.instance.fullAccess.assertCompromisedInstantaneously();
+        
+    }
+    @Test
+    public void testDeviceEmulationExploit() {
+        printTestName(Thread.currentThread().getStackTrace()[1].getMethodName());
+        var model = new InstanceTestModel();
+
+        var attacker = new Attacker();
+        model.addAttacker(attacker,model.instance.connect);
+        model.addAttacker(attacker,model.instance.authenticate);
+        attacker.attack();
+
+        model.instance.authenticatedAccess.assertCompromisedInstantaneously();
+        model.instance.fullAccess.assertCompromisedInstantaneously();
+        model.instance.deviceEmulationExploit.assertCompromisedInstantaneously();
+
+    }
+
+
+    @Test
+    public void testDeviceEmulationExploitBufferOverflow() {
+        printTestName(Thread.currentThread().getStackTrace()[1].getMethodName());
+        var model = new InstanceTestModel();
+
+        var attacker = new Attacker();
+        model.addAttacker(attacker,model.instance.connect);
+        model.addAttacker(attacker,model.instance.authenticate);
+        model.addAttacker(attacker,model.virtulization.bufferOverflow);
+        attacker.attack();
+
+        model.instance.authenticatedAccess.assertCompromisedInstantaneously();
+        model.instance.fullAccess.assertCompromisedInstantaneously();
+        model.instance.deviceEmulationExploit.assertCompromisedInstantaneously();
+
+        model.instance.improperMemoryBounds.assertCompromisedInstantaneously();
+        
+        model.instance.attemptExploitBufferOverflow.assertCompromisedInstantaneously();
+        model.virtulization.bufferOverflow.assertCompromisedInstantaneously(); 
+
+    }
 
 
 
