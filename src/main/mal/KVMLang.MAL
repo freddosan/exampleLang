@@ -9,8 +9,15 @@ category System {
 
     }
 
-    asset HardwareMemoryEncryption extends Machine{
+    asset HardwareMemoryEncryption extends Information{
       //If the machine supports AMD-SEV or Intel-MKTME, the data in use is encrypted.
+      | use {C}
+        user info: "Someone is using the credentials to perform a legitimate authentication."
+        ->  encryptedData.accessDecryptedData
+
+        | attemptAccess
+        user info: "The attacker is attempting to access the credentials."
+        -> use
     }
 
 

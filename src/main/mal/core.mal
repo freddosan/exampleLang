@@ -46,12 +46,12 @@ category System {
         | denialOfService
             -> deny
 
-        # hardwareMemoryEncryption
-          developer info: "Does not protect against Denial of service. https://developer.amd.com/wordpress/media/2013/12/AMD_Memory_Encryption_Whitepaper_v7-Public.pdf"
-          user info: "To protect VM in runtime, hardware encryption is needed SME/SEV or MKTME. The encryption protects against the threat that the attacker has access to execute user privileged code or higher privileged code (or malware). on the hypervisor."
-          ->  sysData.attemptRead,
-              sysData.attemptWrite
-              //sysData.delete : The attacker could still delete data if its encrypted
+        //# hardwareMemoryEncryption
+        //  developer info: "Does not protect against Denial of service. https://developer.amd.com/wordpress/media/2013/12/AMD_Memory_Encryption_Whitepaper_v7-Public.pdf"
+        //  user info: "To protect VM in runtime, hardware encryption is needed SME/SEV or MKTME. The encryption protects against the threat that the attacker has access to execute user privileged code or higher privileged code (or malware). on the hypervisor."
+        //  ->  sysData.attemptRead,
+        //      sysData.attemptWrite
+        //      //sysData.delete : The attacker could still delete data if its encrypted
 
     }
 
@@ -144,6 +144,8 @@ asset Application extends Object
     }
 }
 
+
+
 category DataResources{
 
     asset Information
@@ -166,17 +168,40 @@ category DataResources{
               attemptWrite,
               attemptDelete
 
-        !E dataEncrypted
-          user info: "If the data are encrypted then accessing them requires the associated encryption credentials/key."
-          <-  secureVirtualization[HardwareMemoryEncryption]
-          ->  decryptData
+        //!E dataEncrypted @hidden
+        //  user info: "If the data are encrypted then accessing them requires the associated encryption credentials/key."
+        //  <-  secureVirtualization[HardwareMemoryEncryption]
+        //  ->  decryptData
 
-        | decryptData
+
+          !E dataEncrypted @hidden
+          user info: "If the data are encrypted then accessing them requires the associated encryption credentials/key."
+          developer info: "Data will be considered as encrypted if there is at least one Credentials instance associated with it. Otherwise, 'accessUnencryptedData' is reached."
+          <-  encryptCreds
+          ->  accessUnencryptedData
+
+        
+        
+          & accessUnencryptedData
+          user info: "If data is unencrypted then access them."
+          ->  accessDecryptedData
+
+
+          | accessDecryptedData @hidden
+          user info: "Intermediate attack step to only allow effects of 'accessUnencryptedData' on data after compromising the encryption credentials or encryption is disabled."
           ->  access,
               readContainedInformationAndData,
               read,
               write,
               delete
+        
+        
+        //| decryptData
+        //  ->  access,
+        //      readContainedInformationAndData,
+        //      read,
+        //      write,
+        //      delete
         
         # dataNotExist
           user info: "It models the probability of data actually not existing on the connected container (i.e. System, Application, Connection, etc.)."
@@ -248,6 +273,8 @@ category Networking {
 
     }
 
+    
+
 
 }
 
@@ -271,6 +298,10 @@ associations {
     Data [containerData] * <-- InfoContainment --> *   [information]    Information
       user info: "Data can contain information, as for example credentials." 
     //------------------------------- ### Network related associations
-      Network          [networks]             * <-- NetworkExposure       --> *   [applications]           Application
+      Network [networks]             * <-- NetworkExposure       --> *   [applications]           Application
       user info: "An application can communicate / be exposed on a network."
+
+        Data  [encryptedData] * <-- EncryptionCredentials --> 0..1[encryptCreds]  HardwareMemoryEncryption
+       user info: "Encrypted data can be associated with the relevant encryption credentials." 
+
 }

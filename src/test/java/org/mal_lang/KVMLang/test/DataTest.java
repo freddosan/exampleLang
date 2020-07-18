@@ -11,12 +11,14 @@ public class DataTest extends KVMLangTest {
         public final Data data2 = new Data("data2", false);
         public final Data encdata = new Data("encData", false);
         public final Data notexistdata = new Data("notexistdata", true);
+        public final HardwareMemoryEncryption datacreds = new HardwareMemoryEncryption("datacreds");
 
       
         public DataTestModel() {
             data1.addContainedData(data2);
             data1.addContainedData(encdata);
             data1.addContainedData(notexistdata);
+            encdata.addEncryptCreds(datacreds);
             
         }
         public void addAttacker(Attacker attacker, AttackStep attackpoint) {
@@ -35,10 +37,7 @@ public class DataTest extends KVMLangTest {
         model.data1.access.assertCompromisedInstantaneously();
         model.data1.readContainedInformationAndData.assertCompromisedInstantaneously();
         model.data2.access.assertCompromisedInstantaneously();
-       
-        //EJ KLAR DETTA MÅSTE FIXAS!!! 
-
-        //model.encdata.access.assertUncompromised();
+        model.encdata.access.assertUncompromised();
         model.notexistdata.access.assertUncompromised();
     }
 
@@ -69,6 +68,26 @@ public class DataTest extends KVMLangTest {
         model.notexistdata.read.assertUncompromised();
         model.notexistdata.write.assertUncompromised();
         model.notexistdata.delete.assertUncompromised();
+    }
+
+    @Test
+    public void testDecryptData() {
+        printTestName(Thread.currentThread().getStackTrace()[1].getMethodName());
+        var model = new DataTestModel();
+
+        var attacker = new Attacker();
+        model.addAttacker(attacker,model.data1.attemptAccess);
+        model.addAttacker(attacker,model.datacreds.use);
+        attacker.attack();
+
+        model.data1.access.assertCompromisedInstantaneously();
+        model.data2.access.assertCompromisedInstantaneously();
+        model.encdata.access.assertCompromisedInstantaneously();
+        model.encdata.read.assertCompromisedInstantaneously();
+        model.encdata.write.assertCompromisedInstantaneously();
+        model.encdata.delete.assertCompromisedInstantaneously();
+
+        model.notexistdata.access.assertUncompromised();
     }
  
 }
