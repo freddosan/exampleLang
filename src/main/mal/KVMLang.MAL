@@ -35,8 +35,8 @@ category System {
 
           & attemptUseCLI
           user info: "the user is attempting to access the CLI"
-            ->  Instances.delete, // (admin only --all-tenants)
-                Instances.stop //Stop server. (admin only --all-tenants) 
+            ->  instances.delete, // (admin only --all-tenants)
+                instances.stop //Stop server. (admin only --all-tenants) 
   
     }
 
@@ -82,12 +82,14 @@ category System {
               developer info: "Removal of an instance would result in DOS and loss of data"
               -> sysExecutedInstances.delete  
             
+            
             !E fd_CMD_READ_ID
               developer info: "CVE-2015-3456, VENOM, fd_CMD_READ_ID attack vector"
               user info: "If SELinux is disabled, it's possible to proceed with the an successful attack."
               <- svirt[SELinux]
               -> venomExploit
-    
+
+              
             & venomExploit
               -> executor.fullAccess
             
@@ -199,7 +201,7 @@ associations {
     QemuKVM [hypervisor] 0..1  <-- VirtHardware --> 1..* [sysExecutedInstances] Instance
     developer info: "Qemu-KVM handles I/O emulation CPU emulation and virtual hardware for each instance. Each instance have their own Qemu-process tied to the instance."
 
-    NovaService [InstanceMGMT]  0..1  <--  OrchestratesInstancesViaLibvirt -->  1..*  [Instances]  QemuKVM
+    NovaService [instanceMGMT]  0..1  <--  OrchestratesInstancesViaLibvirt -->  1..*  [instances]  QemuKVM
     developer info: "Nova compute orchestrates the KVM-QEMU instances."
    
    //------------------------------- ### Data related associations

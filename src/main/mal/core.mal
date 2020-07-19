@@ -116,7 +116,6 @@ asset Application extends Object
             modify,
             deny,
             appExecutedApps.fullAccess, // Gain access on all applications executed by this (host) application
-            containedData.attemptAccess,     //And access the contained data
             hostApp.localConnect    // and localConnect on the host application
 
 
