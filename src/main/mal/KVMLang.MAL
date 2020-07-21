@@ -218,8 +218,11 @@ associations {
     Instance [guestExecutor]  0..* <-- SysExecution --> *  [guestSysExecutedApps] Application
     developer info: "The instance 'guestSystem' on which Applications are running."
 
-    Data [encryptedData] * <-- DataEncryption --> 0..1 [secureVirtualization]    Machine
-    developer info: "The VM data can be encrypted during use."
+    //Data [encryptedData] * <-- DataEncryption --> 0..1 [secureVirtualization]    Machine
+    //developer info: "The VM data can be encrypted during use."
+
+    Data  [encryptedData] * <-- DataEncryption --> 0..1 [secureVirtualization]  HardwareMemoryEncryption
+       user info: "Encrypted data can be associated with the relevant encryption credentials." 
 
    //------------------------------- ### LSM related associations
     //SELinux [sVirt] 0..1  <-- LinuxSecurityModule --> 0..1 [hypervisor]  QemuKVM

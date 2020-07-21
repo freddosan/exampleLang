@@ -18,7 +18,7 @@ public class DataTest extends KVMLangTest {
             data1.addContainedData(data2);
             data1.addContainedData(encdata);
             data1.addContainedData(notexistdata);
-            encdata.addEncryptCreds(datacreds);
+            encdata.addSecureVirtualization(datacreds);
             
         }
         public void addAttacker(Attacker attacker, AttackStep attackpoint) {

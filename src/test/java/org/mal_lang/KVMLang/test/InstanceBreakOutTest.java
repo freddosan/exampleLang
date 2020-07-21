@@ -17,6 +17,7 @@ public class InstanceBreakOutTest extends KVMLangTest{
         /**DATA */
         public final Data encdata1 = new Data("encData1", false);
         public final Data encdata2 = new Data("encData2", false);
+        public final Data data3 = new Data("data3", false);
        
 
         /**Applications*/
@@ -29,7 +30,7 @@ public class InstanceBreakOutTest extends KVMLangTest{
         public final HardwareMemoryEncryption datacreds1 = new HardwareMemoryEncryption("datacreds1");
         public final HardwareMemoryEncryption datacreds2 = new HardwareMemoryEncryption("datacreds2");
         
-        /**---Second model with activated defenses (Patched hypervisor)---*/
+        /**---Second model with activated defenses (Patched hypervisor & Svirt)---*/
         
         /**Instances & Hypervisor */
         public final Instance instance3 = new Instance("instance3");
@@ -50,7 +51,7 @@ public class InstanceBreakOutTest extends KVMLangTest{
         public final HardwareMemoryEncryption datacreds3 = new HardwareMemoryEncryption("datacreds3");
         public final HardwareMemoryEncryption datacreds4 = new HardwareMemoryEncryption("datacreds4");
         
-        //MAC svirt - FUNKAR EJ
+        //Mandetory accesscontrol
         public final SELinux sVirt = new SELinux("sVirt");
         
 
@@ -65,8 +66,8 @@ public class InstanceBreakOutTest extends KVMLangTest{
             hypervisor.addSysExecutedInstances(instance2);
             
             /**DATA */
-            encdata1.addEncryptCreds(datacreds1);
-            encdata2.addEncryptCreds(datacreds2);
+            encdata1.addSecureVirtualization(datacreds1);
+            encdata2.addSecureVirtualization(datacreds2);
 
             instance1.addContainedData(encdata1);
             instance2.addContainedData(encdata2);
@@ -89,8 +90,8 @@ public class InstanceBreakOutTest extends KVMLangTest{
             hypervisor2.addSvirt(sVirt);
            
             /**DATA */
-            encdata3.addEncryptCreds(datacreds3);
-            encdata4.addEncryptCreds(datacreds4);
+            encdata3.addSecureVirtualization(datacreds3);
+            encdata4.addSecureVirtualization(datacreds4);
 
             instance3.addContainedData(encdata3);
             instance4.addContainedData(encdata4);
@@ -178,8 +179,6 @@ public class InstanceBreakOutTest extends KVMLangTest{
     model.instance3.venomFDC.assertCompromisedInstantaneously();
     //Hypervisor traverse
     model.hypervisor2.attemptVenomFDC.assertCompromisedInstantaneously();
-    //Funkar ej nu
-    //model.hypervisor2.fd_CMD_READ_ID.assertUncompromised();
     model.hypervisor2.venomExploit.assertUncompromised();
     
     //SystemTraverse

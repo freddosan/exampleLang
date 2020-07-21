@@ -174,7 +174,7 @@ category DataResources{
           !E dataEncrypted @hidden
           user info: "If the data are encrypted then accessing them requires the associated encryption credentials/key."
           developer info: "Data will be considered as encrypted if there is at least one Credentials instance associated with it. Otherwise, 'accessUnencryptedData' is reached."
-          <-  encryptCreds
+          <-  secureVirtualization
           ->  accessUnencryptedData
 
         
@@ -298,7 +298,6 @@ associations {
       Network [networks]             * <-- NetworkExposure       --> *   [applications]           Application
       user info: "An application can communicate / be exposed on a network."
 
-        Data  [encryptedData] * <-- EncryptionCredentials --> 0..1[encryptCreds]  HardwareMemoryEncryption
-       user info: "Encrypted data can be associated with the relevant encryption credentials." 
+        
 
 }
