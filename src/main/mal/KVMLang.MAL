@@ -123,9 +123,9 @@ category System {
 
             | fullAccess
                 developer info: "privileged user access, can read/Write/delete data, and stop an instance"
-                ->  containedData.attemptRead,
-                    containedData.attemptWrite,
-                    containedData.attemptDelete, 
+                ->  read,
+                    write,
+                    delete, 
                     deviceEmulationExploit,
                     deny,
                     stop
@@ -133,7 +133,14 @@ category System {
             | stop
               developer info:"The instance is stopped /shutdown result is DOS"
               -> deny
+
+            | read
+              developer info:"Access to the instance can lead to the attacker gains acces to the data"
+            -> containedData.attemptRead
             
+            | write
+               developer info:"Attempts to write."
+               -> containedData.attemptWrite
             | delete
               developer info:"the instance is removed, since the instance uses ephemeral storage, removal of instance result in loss of data."
               -> containedData.attemptDelete
