@@ -7,7 +7,14 @@ import org.junit.jupiter.api.Test;
 public class InstanceBreakOutTest extends KVMLangTest{
 
     private static class InstanceBreakOutModel {
-        /**Instances & Hypervisor */
+      /**First model has Hardware Memory encryption active.
+       * Second model has Svirt and Patching active.
+       * Third model has no defenses active
+       * 
+       * 
+       * */  
+      
+      /**Instances & Hypervisor */
         public final Instance instance1 = new Instance("instance1");
         public final Instance instance2 = new Instance("instance2");
 
@@ -26,7 +33,7 @@ public class InstanceBreakOutTest extends KVMLangTest{
 
         /**System*/
         public final System system = new System("system");
-       
+        public final NovaService novaCLI = new NovaService("novaCLI");
         public final HardwareMemoryEncryption datacreds1 = new HardwareMemoryEncryption("datacreds1");
         public final HardwareMemoryEncryption datacreds2 = new HardwareMemoryEncryption("datacreds2");
         
@@ -42,22 +49,45 @@ public class InstanceBreakOutTest extends KVMLangTest{
        
 
         /**Applications*/
-        public final Application application3 = new Application("application1");
-        public final Application application4 = new Application("application2");
+        public final Application application3 = new Application("application3");
+        public final Application application4 = new Application("application4");
 
         /**System*/
         public final System system2 = new System("system");
-        public final NovaService novaCLI = new NovaService("novaCLI");
+        public final NovaService novaCLI2 = new NovaService("novaCLI2");
         public final HardwareMemoryEncryption datacreds3 = new HardwareMemoryEncryption("datacreds3");
         public final HardwareMemoryEncryption datacreds4 = new HardwareMemoryEncryption("datacreds4");
         
         //Mandetory accesscontrol
         public final SELinux sVirt = new SELinux("sVirt");
-        
 
+
+        /**---Third model without activated defenses---*/
+
+        /**Instances & Hypervisor */
+        public final Instance instance5 = new Instance("instance5");
+        public final Instance instance6 = new Instance("instance6");
+
+        public final QemuKVM hypervisor3 = new QemuKVM("hypervisor3", false);
+
+
+        /**DATA */
+        public final Data data5 = new Data("data5", false);
+        public final Data data6 = new Data("data6", false);
+       
+
+        /**Applications*/
+        public final Application application5 = new Application("application5");
+        public final Application application6 = new Application("application6");
+
+        /**System*/
+        public final System system3 = new System("system3");
+        public final NovaService novaCLI3 = new NovaService("novaCLI3");
+       
 
         public InstanceBreakOutModel() {
 
+          /**---First model with activated memory encryption---*/
             /**SYSTEM */
             system.addHypervisor(hypervisor);
 
@@ -76,7 +106,8 @@ public class InstanceBreakOutTest extends KVMLangTest{
              /**Applications tied to instances*/
              instance1.addGuestSysExecutedApps(application1);
              instance2.addGuestSysExecutedApps(application2);
-
+            // Instance mgmt
+            hypervisor.addInstanceMGMT(novaCLI);
 
         /**---Second model with activated defenses---*/
             /**SYSTEM */
@@ -86,7 +117,6 @@ public class InstanceBreakOutTest extends KVMLangTest{
             hypervisor2.addSysExecutedInstances(instance3);
             hypervisor2.addSysExecutedInstances(instance4);
             //Hypervisor protection.
-
             hypervisor2.addSvirt(sVirt);
            
             /**DATA */
@@ -100,7 +130,28 @@ public class InstanceBreakOutTest extends KVMLangTest{
             /**Applications tied to instances*/
             instance3.addGuestSysExecutedApps(application3);
             instance4.addGuestSysExecutedApps(application4);
-            hypervisor2.addInstanceMGMT(novaCLI);
+            hypervisor2.addInstanceMGMT(novaCLI2);
+
+             /**---Third model without defenses---*/
+
+             /**SYSTEM */
+            system3.addHypervisor(hypervisor3);
+
+            /**Instances & Hypervisor */
+            hypervisor3.addSysExecutedInstances(instance5);
+            hypervisor3.addSysExecutedInstances(instance6);
+            
+           
+            /**DATA */
+            instance5.addContainedData(data5);
+            instance6.addContainedData(data6);
+            //To show that the data of the instance could reside on the host.
+            system3.addSysData(data5);
+            system3.addSysData(data6);
+            /**Applications tied to instances*/
+            instance3.addGuestSysExecutedApps(application5);
+            instance4.addGuestSysExecutedApps(application6);
+            hypervisor3.addInstanceMGMT(novaCLI3);
            
         }
 
@@ -123,7 +174,6 @@ public class InstanceBreakOutTest extends KVMLangTest{
     
     model.instance1.authenticatedAccess.assertCompromisedInstantaneously();
     model.instance1.fullAccess.assertCompromisedInstantaneously();
-    //model.instance1.containedData.attemptRead.assertCompromisedInstantaneously();
     model.encdata1.read.assertCompromisedInstantaneously();
     model.encdata2.read.assertUncompromised();
   }

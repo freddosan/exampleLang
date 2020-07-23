@@ -36,10 +36,12 @@ category System {
         | _machineAccess
           developer info: "if access to machine, its possible to read data from instances."
             ->  denialOfService,
-                sysData.attemptAccess,
+                attemptAccessToData,
                 subSystems[NovaService].attemptUseCLI
                 
-                                
+        | attemptAccessToData
+          developer info: "Access to data on system."
+          -> sysData.attemptAccess                   
 
         | denialOfService
             -> deny

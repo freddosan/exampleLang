@@ -129,6 +129,7 @@ category System {
                     deviceEmulationExploit,
                     deny,
                     stop
+                    
             
             | stop
               developer info:"The instance is stopped /shutdown result is DOS"
@@ -208,8 +209,14 @@ associations {
     QemuKVM [hypervisor] 0..1  <-- VirtHardware --> 1..* [sysExecutedInstances] Instance
     developer info: "Qemu-KVM handles I/O emulation CPU emulation and virtual hardware for each instance. Each instance have their own Qemu-process tied to the instance."
 
-    NovaService [instanceMGMT]  0..1  <--  OrchestratesInstancesViaLibvirt -->  1..*  [instances]  QemuKVM
+    NovaService [instanceStopStart]  0..1  <--  OrchestratesInstancesViaLibvirtAndQemu -->  1..*  [instances]  Instance
     developer info: "Nova compute orchestrates the KVM-QEMU instances."
+    
+    NovaService [instanceMGMT]  0..1  <--  OrchestratesInstancesViaLibvirt -->  0..1  [mgmtInstance]  QemuKVM
+    developer info: "Nova compute orchestrates the KVM-QEMU instances."
+
+    //System  [subSystemNova]  0..1  <--  ExecutesSubSystems -->  0..1  [subSystemExecutee]  NovaService
+    //developer info: "Nova compute orchestrates the KVM-QEMU instances."
    
    //------------------------------- ### Data related associations
     Data [containedData] * <-- InstanceContainment --> * [containingInstance]    Instance
