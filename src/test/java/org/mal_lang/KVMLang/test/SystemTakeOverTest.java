@@ -114,7 +114,7 @@ public class SystemTakeOverTest extends KVMLangTest{
 
 
     @Test
-    public void testHostTakeOverReadData() {
+    public void testMODEL1HostTakeOverReadData() {
     printTestName(Thread.currentThread().getStackTrace()[1].getMethodName());
     var model = new SystemTakeOverModel();
 
@@ -137,7 +137,7 @@ public class SystemTakeOverTest extends KVMLangTest{
   }
 
   @Test
-    public void testHostTakeOverUseCli() {
+    public void testMODEL1HostTakeOverUseCli() {
     printTestName(Thread.currentThread().getStackTrace()[1].getMethodName());
     var model = new SystemTakeOverModel();
 
@@ -151,16 +151,29 @@ public class SystemTakeOverTest extends KVMLangTest{
     model.addAttacker(attacker,model.novaCLI1._machineAccess);
     attacker.attack();
 
-
+    //Access to Model1 System and also to the CLI  
     model.system1.fullAccess.assertCompromisedInstantaneously();
     model.system1._machineAccess.assertCompromisedInstantaneously();
     model.system1.denialOfService.assertCompromisedInstantaneously();
     
+    //Since full access, its possible to read data.
     model.data1.read.assertCompromisedInstantaneously();
     model.data2.read.assertCompromisedInstantaneously();
+    //Reaching CLI
     model.novaCLI1.attemptUseCLI.assertCompromisedInstantaneously();
-    //model.instance1.delete.assertCompromisedInstantaneously();
-
+    //Reaching hypervisor
+    model.hypervisor1.delete.assertCompromisedInstantaneously();
+    model.hypervisor1.stop.assertCompromisedInstantaneously();
+    // Reaching instance1
+    model.instance1.deny.assertCompromisedInstantaneously();
+    // Reaching instance2
+    model.instance2.delete.assertCompromisedInstantaneously();
+    //Since Instances are stopped/removed following attacksteps are tied to applications or data
+    //Instance1 -> deny-> application ->Deny.
+    model.application1.deny.assertCompromisedInstantaneously(); 
+    //Instance2 -> delete-> data ->attemptDelete.
+    model.data2.attemptDelete.assertCompromisedInstantaneously();
+    model.data2.delete.assertCompromisedInstantaneously();
   }
 
   @Test

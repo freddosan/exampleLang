@@ -10,8 +10,6 @@ public class InstanceBreakOutTest extends KVMLangTest{
       /**First model has Hardware Memory encryption active.
        * Second model has Svirt and Patching active.
        * Third model has no defenses active
-       * 
-       * 
        * */  
       
       /**Instances & Hypervisor */
@@ -132,7 +130,7 @@ public class InstanceBreakOutTest extends KVMLangTest{
             instance4.addGuestSysExecutedApps(application4);
             hypervisor2.addInstanceMGMT(novaCLI2);
 
-             /**---Third model without defenses---*/
+             /**-----Third model without defenses-----*/
 
              /**SYSTEM */
             system3.addHypervisor(hypervisor3);
@@ -237,12 +235,39 @@ public class InstanceBreakOutTest extends KVMLangTest{
     /**Breakout Complete */
     //Data from first instance is compromised(Access to instance, however the data to the second instance is uncompromised). 
     model.encdata4.read.assertUncompromised();
-    //NovaCliTest
-    
   }
 
+  @Test
+  public void testModel3BreakOut() {
+    printTestName(Thread.currentThread().getStackTrace()[1].getMethodName());
+    var model = new InstanceBreakOutModel();
 
-  
+    var attacker = new Attacker();
+    model.addAttacker(attacker,model.instance5.connect);
+    model.addAttacker(attacker,model.instance5.authenticate);
+    attacker.attack();
+
+    //Instance traverse
+    model.instance5.authenticatedAccess.assertCompromisedInstantaneously();
+    model.instance5.fullAccess.assertCompromisedInstantaneously();
+    model.data5.read.assertCompromisedInstantaneously();
+    model.instance5.deviceEmulationExploit.assertCompromisedInstantaneously();
+    model.instance5.improperMemoryBounds.assertCompromisedInstantaneously();
+    model.instance5.venomFDC.assertCompromisedInstantaneously();
+    //Hypervisor traverse
+    model.hypervisor3.attemptVenomFDC.assertCompromisedInstantaneously();
+    model.hypervisor3.venomExploit.assertCompromisedInstantaneously();
+    
+    
+    //SystemTraverse
+    model.system3.fullAccess.assertCompromisedInstantaneously();
+    model.system3._machineAccess.assertCompromisedInstantaneously();
+    /**Breakout Complete */
+    //Data from first instance is compromised(Access to instance, however the data to the second instance is also compromised due to Data is not encrypted). 
+    model.data6.read.assertCompromisedInstantaneously();
+  }
+
+ 
 
 
 
