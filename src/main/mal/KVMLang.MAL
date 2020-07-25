@@ -34,9 +34,12 @@ category System {
             -> attemptUseCLI
 
           & attemptUseCLI
-          user info: "the user is attempting to access the CLI"
-            ->  instances.delete, // (admin only --all-tenants)
-                instances.stop //Stop server. (admin only --all-tenants) 
+          user info: "the user is attempting to access the CLI, goes via the hypervisor"
+            ->  mgmtInstance.stop,
+                mgmtInstance.delete
+            
+                //instances.delete, // (admin only --all-tenants)
+                //instances.stop //Stop server. (admin only --all-tenants) 
   
     }
 
@@ -142,6 +145,7 @@ category System {
             | write
                developer info:"Attempts to write."
                -> containedData.attemptWrite
+               
             | delete
               developer info:"the instance is removed, since the instance uses ephemeral storage, removal of instance result in loss of data."
               -> containedData.attemptDelete

@@ -63,6 +63,15 @@ public class InstanceTest extends KVMLangTest{
         model.instance.authenticatedAccess.assertCompromisedInstantaneously();
         model.instance.fullAccess.assertCompromisedInstantaneously();
         model.instance.deviceEmulationExploit.assertCompromisedInstantaneously();
+        model.instance.improperMemoryBounds.assertCompromisedInstantaneously();
+        model.instance.outOfBoundsRead.assertCompromisedInstantaneously();
+        model.instance.nullPointerDereference.assertCompromisedInstantaneously();
+        //Next step
+        model.instance.attemptNullPointerDereference.assertCompromisedInstantaneously();
+        model.instance.attemptExploitBufferOverflow.assertCompromisedInstantaneously();
+        model.instance.attemptExploitOutOfBoundsRead.assertCompromisedInstantaneously();
+        model.instance.venomFDC.assertCompromisedInstantaneously();
+        
 
     }
 
@@ -86,6 +95,27 @@ public class InstanceTest extends KVMLangTest{
         
         model.instance.attemptExploitBufferOverflow.assertCompromisedInstantaneously();
         model.virtulization.bufferOverflow.assertCompromisedInstantaneously(); 
+
+    }
+
+
+    @Test
+    public void testSRWD() {
+        printTestName(Thread.currentThread().getStackTrace()[1].getMethodName());
+        var model = new InstanceTestModel();
+
+        var attacker = new Attacker();
+        model.addAttacker(attacker,model.instance.connect);
+        model.addAttacker(attacker,model.instance.authenticate);
+        attacker.attack();
+
+        model.instance.authenticatedAccess.assertCompromisedInstantaneously();
+        model.instance.fullAccess.assertCompromisedInstantaneously();
+        model.instance.stop.assertCompromisedInstantaneously();
+        model.instance.read.assertCompromisedInstantaneously();
+        model.instance.write.assertCompromisedInstantaneously();
+        model.instance.delete.assertCompromisedInstantaneously();
+        model.instance.deny.assertCompromisedInstantaneously();
 
     }
 
