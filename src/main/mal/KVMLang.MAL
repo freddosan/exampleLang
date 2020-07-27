@@ -61,15 +61,15 @@ category System {
         user info: "Qemu emulates vCpu, SMP, Soft MMU, I &T. Mech, I/O Network, Paravirtualized I/O, VM Exits, Hypercalls, "
         { 
            
-            | bufferOverflow
+            & bufferOverflow
                 developer info: "CVE-2015-5158, 2015-7512, 2015-7504, 2017-10806"
                 -> guestInstanceDOS
 
-            | outOfBoundsReadORWrite
+            & outOfBoundsReadORWrite
                 developer info: "CVE-2017-11334, CVE-2017-13672, CVE-2017-7718, CVE-2017-15289, CVE-2015-8619, CVE-2016-10029"
                 -> guestInstanceDOS
 
-            | nullPointerDereference
+            & nullPointerDereference
                developer info: "CVE-2017-12809"
                 ->  guestInstanceDOS
 
@@ -99,7 +99,7 @@ category System {
             | attemptVenomFDC @hidden
               -> venomExploit
 
-            #patchStatus
+            # patchStatus
              developer info: "Ensure the Qemu/KVM is patch up-to-date, and it's patched correctly"   
               -> bufferOverflow,
                 fd_CMD_READ_ID,
