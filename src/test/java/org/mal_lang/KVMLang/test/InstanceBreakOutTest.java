@@ -159,7 +159,7 @@ public class InstanceBreakOutTest extends KVMLangTest{
   }
     
   @Test
-  public void testFetchDatafromInstance1() {
+  public void testFetchDatafromInstance1_TC4() {
     printTestName(Thread.currentThread().getStackTrace()[1].getMethodName());
     var model = new InstanceBreakOutModel();
 
@@ -177,7 +177,7 @@ public class InstanceBreakOutTest extends KVMLangTest{
   }
 
   @Test
-  public void testInstance1BreakOut() {
+  public void testInstance1BreakOut_TC5() {
     printTestName(Thread.currentThread().getStackTrace()[1].getMethodName());
     var model = new InstanceBreakOutModel();
 
@@ -208,7 +208,7 @@ public class InstanceBreakOutTest extends KVMLangTest{
   }
 
   @Test
-  public void testInstance3BreakoutFailPatchAndSvirt() {
+  public void testInstance3BreakoutFailPatchAndSvirt_TC6() {
     printTestName(Thread.currentThread().getStackTrace()[1].getMethodName());
     var model = new InstanceBreakOutModel();
 
@@ -232,13 +232,13 @@ public class InstanceBreakOutTest extends KVMLangTest{
     //SystemTraverse
     model.system2.fullAccess.assertUncompromised();
     model.system2._machineAccess.assertUncompromised();
-    /**Breakout Complete */
+    /**Breakout Failed */
     //Data from first instance is compromised(Access to instance, however the data to the second instance is uncompromised). 
     model.encdata4.read.assertUncompromised();
   }
 
   @Test
-  public void testModel3BreakOut() {
+  public void testModel3BreakOut_TC7() {
     printTestName(Thread.currentThread().getStackTrace()[1].getMethodName());
     var model = new InstanceBreakOutModel();
 

@@ -22,10 +22,10 @@ public class NetworkTest extends KVMLangTest {
  
         }
         
-        public void addAttacker(Attacker attacker) {
-            attacker.addAttackPoint(netD.access);
-        }
 
+        public void addAttacker(Attacker attacker, AttackStep attackpoint) {
+            attacker.addAttackPoint(attackpoint);
+        }
         public void assertModel() {
             // Make assertions
             app1.networkConnect.assertCompromisedInstantaneously();    
@@ -40,7 +40,7 @@ public class NetworkTest extends KVMLangTest {
       var model = new simpleNetworkTestModel();
       // Create attacker
       var atk = new Attacker();
-      model.addAttacker(atk);
+      model.addAttacker(atk,model.netD.access);
       atk.attack();
       // Assert model
       model.assertModel();
