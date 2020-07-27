@@ -13,10 +13,10 @@ public class InstanceBreakOutTest extends KVMLangTest{
        * */  
       
       /**Instances & Hypervisor */
-        public final Instance instance1 = new Instance("instance1");
-        public final Instance instance2 = new Instance("instance2");
+      public final Instance instance1 = new Instance("instance1");
+      public final Instance instance2 = new Instance("instance2");
 
-        public final QemuKVM hypervisor = new QemuKVM("hypervisor", false);
+      public final QemuKVM hypervisor = new QemuKVM("hypervisor", false);
 
 
         /**DATA */
