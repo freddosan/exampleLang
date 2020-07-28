@@ -114,7 +114,7 @@ public class SystemTakeOverTest extends KVMLangTest{
 
 
     @Test
-    public void testMODEL1HostTakeOverReadData() {
+    public void testMODEL1HostTakeOverReadData_TC1() {
     printTestName(Thread.currentThread().getStackTrace()[1].getMethodName());
     var model = new SystemTakeOverModel();
 
@@ -137,7 +137,7 @@ public class SystemTakeOverTest extends KVMLangTest{
   }
 
   @Test
-    public void testMODEL1HostTakeOverUseCli() {
+    public void testMODEL1HostTakeOverUseCli_TC2() {
     printTestName(Thread.currentThread().getStackTrace()[1].getMethodName());
     var model = new SystemTakeOverModel();
 

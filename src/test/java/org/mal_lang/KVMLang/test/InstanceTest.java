@@ -8,10 +8,9 @@ public class InstanceTest extends KVMLangTest{
 
     private static class InstanceTestModel {
         public final Instance instance = new Instance("instance");
-        public final QemuKVM virtulization = new QemuKVM("virtulization");
+        public final QemuKVM virtulization = new QemuKVM("virtulization", false);
 
         public InstanceTestModel() {
-            //Kanske byta namn: hypervisor-> add Instance. 
             instance.addHypervisor(virtulization);
             virtulization.addSysExecutedInstances(instance);
 
